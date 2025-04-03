@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PencaSquad - Seu Grupo Fitness</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+        }
+        .music-player {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        .chat-message {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .online-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .online {
+            background-color: #4ade80;
+        }
+        .offline {
+            background-color: #ef4444;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+        .login-error {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .login-container {
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://images.unsplash.com/photo-1571019613454-1cb2f5b2f836?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+        .nutri-ai-avatar {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+        }
+        .exercise-calories {
+            font-size: 0.75rem;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100">
+    <!-- Login Screen -->
+    <div id="login-screen" class="fixed inset-0 flex items-center justify-center login-container z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <div class="flex items-center justify-center mb-4">
+                    <i class="fas fa-dumbbell text-3xl text-orange-500 mr-2"></i>
+                    <h1 class="text-3xl font-bold text-gray-800">PencaSquad</h1>
+                </div>
+                <p class="text-gray-600">Acompanhamento fitness do seu grupo</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <i class="fas fa-user mr-2 text-orange-500"></i> Nome
+                    </label>
+                    <select id="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <option value="">Selecione seu nome</option>
+                        <option value="DIOGO">Diogo</option>
+                        <option value="TETEU">Teteu</option>
+                        <option value="LETICIA">Leticia</option>
+                        <option value="JULIO">Julio</option>
+                        <option value="MANU">Manu</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                        <i class="fas fa-lock mr-2 text-orange-500"></i> Senha
+                    </label>
+                    <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div id="login-error" class="text-red-500 text-sm hidden flex items-center">
+                    <i class="fas fa-exclamation-circle mr-2"></i> Nome ou senha incorretos!
+                </div>
+                <button type="submit" class="w-full gradient-bg text-white py-2 px-4 rounded-md hover:opacity-90 transition duration-200 flex items-center justify-center">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App (Hidden until login) -->
+    <div id="app" class="hidden">
+        <!-- Header -->
+        <header class="gradient-bg text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-dumbbell text-2xl"></i>
+                    <h1 class="text-xl font-bold">PencaSquad</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="user-info" class="flex items-center space-x-2">
+                        <img id="user-avatar" class="w-8 h-8 rounded-full border-2 border-white" src="" alt="">
+                        <span id="user-name" class="font-medium"></span>
+                        <div id="user-status" class="online-indicator online"></div>
+                    </div>
+                    <button id="logout-btn" class="text-white hover:text-gray-200">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Activity Tracker -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold text-gray-800">Registro de Atividades</h2>
+                            <button id="add-activity-btn" class="gradient-bg text-white px-4 py-2 rounded-md hover:opacity-90 transition duration-200">
+                                <i class="fas fa-plus mr-2"></i>Adicionar
+                            </button>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Membro</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Atividade</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duração</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calorias</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activity-list" class="bg-white divide-y divide-gray-200">
+                                    <!-- Activities will be added here dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Progress Charts -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Progresso do Grupo</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-700 mb-2">Atividades por Membro</h3>
+                                <div class="chart-container">
+                                    <canvas id="activities-chart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-700 mb-2">Calorias Queimadas</h3>
+                                <div class="chart-container">
+                                    <canvas id="calories-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nutrition Tips -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Dicas de Nutrição</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="p-4 bg-orange-50 rounded-lg">
+                                <h3 class="font-medium text-orange-800">Dieta Pré-Treino</h3>
+                                <p class="text-sm text-gray-600 mt-1">Consuma carboidratos complexos 1-2h antes do treino para energia sustentada.</p>
+                            </div>
+                            <div class="p-4 bg-blue-50 rounded-lg">
+                                <h3 class="font-medium text-blue-800">Dieta Pós-Treino</h3>
+                                <p class="text-sm text-gray-600 mt-1">Proteínas e carboidratos simples ajudam na recuperação muscular.</p>
+                            </div>
+                            <div class="p-4 bg-green-50 rounded-lg">
+                                <h3 class="font-medium text-green-800">Hidratação</h3>
+                                <p class="text-sm text-gray-600 mt-1">Beba 500ml de água 2h antes do exercício e mantenha-se hidratado durante.</p>
+                            </div>
+                            <div class="p-4 bg-purple-50 rounded-lg">
+                                <h3 class="font-medium text-purple-800">Suplementos</h3>
+                                <p class="text-sm text-gray-600 mt-1">Whey protein e creatina podem ajudar no ganho de massa muscular.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="space-y-6">
+                    <!-- Music Player -->
+                    <div class="music-player rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold text-white mb-4">Playlist Funk</h2>
+                        <div class="flex items-center mb-4">
+                            <img id="current-song-cover" src="https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg" alt="Album Cover" class="w-16 h-16 rounded-md mr-4">
+                            <div>
+                                <h3 id="current-song-title" class="font-medium text-white">Funk Vibes</h3>
+                                <p id="current-song-artist" class="text-sm text-gray-200">DJ Penca</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mb-4">
+                            <button id="prev-song" class="text-white hover:text-gray-200">
+                                <i class="fas fa-step-backward"></i>
+                            </button>
+                            <button id="play-pause" class="bg-white text-orange-500 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-100">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button id="next-song" class="text-white hover:text-gray-200">
+                                <i class="fas fa-step-forward"></i>
+                            </button>
+                        </div>
+                        <div class="mb-2">
+                            <div class="flex justify-between text-xs text-gray-200">
+                                <span id="current-time">0:00</span>
+                                <span id="total-time">3:32</span>
+                            </div>
+                            <input type="range" id="progress-bar" class="w-full h-1 rounded-full" value="0">
+                        </div>
+                        <div class="mt-4">
+                            <h4 class="text-sm font-medium text-white mb-2">Próximas na playlist:</h4>
+                            <ul id="playlist" class="space-y-2">
+                                <!-- Playlist items will be added here -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Nutrition AI Chat -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="nutri-ai-avatar w-10 h-10 rounded-full flex items-center justify-center text-white mr-3">
+                                <i class="fas fa-utensils"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">Thais Coelho Mansonsa</h2>
+                                <p class="text-sm text-gray-500">Nutricionista Virtual</p>
+                            </div>
+                        </div>
+                        <div id="nutri-chat-messages" class="h-48 overflow-y-auto mb-4 space-y-2">
+                            <div class="bg-gray-100 p-3 rounded-lg text-sm">
+                                <p>Olá! Sou a Thais, nutricionista virtual. Como posso te ajudar com sua dieta hoje?</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="nutri-chat-input" placeholder="Digite sua pergunta..." class="flex-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <button id="send-nutri-message" class="gradient-bg text-white px-4 py-2 rounded-md hover:opacity-90">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Group Members -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Membros do Grupo</h2>
+                        <ul id="members-list" class="space-y-3">
+                            <!-- Members will be added here -->
+                        </ul>
+                    </div>
+
+                    <!-- Exercise Calorie Calculator -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">Calculadora de Calorias</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="exercise-type" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Exercício</label>
+                                <select id="exercise-type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                    <option value="Corrida">Corrida</option>
+                                    <option value="Caminhada">Caminhada</option>
+                                    <option value="Musculação">Musculação</option>
+                                    <option value="Natação">Natação</option>
+                                    <option value="Ciclismo">Ciclismo</option>
+                                    <option value="Yoga">Yoga</option>
+                                    <option value="Crossfit">Crossfit</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="exercise-duration" class="block text-sm font-medium text-gray-700 mb-1">Duração (minutos)</label>
+                                <input type="number" id="exercise-duration" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            </div>
+                            <div>
+                                <label for="exercise-weight" class="block text-sm font-medium text-gray-700 mb-1">Seu Peso (kg)</label>
+                                <input type="number" id="exercise-weight" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            </div>
+                            <button id="calculate-calories" class="w-full gradient-bg text-white py-2 px-4 rounded-md hover:opacity-90 transition duration-200">
+                                Calcular Calorias
+                            </button>
+                            <div id="calories-result" class="text-center font-medium text-orange-600 hidden">
+                                <p>Calorias queimadas: <span id="calculated-calories">0</span> kcal</p>
+                                <p class="exercise-calories">*Valores aproximados baseados em METs (Equivalentes Metabólicos)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Modal -->
+            <div id="chat-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden">
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="text-lg font-medium">Chat do Grupo</h3>
+                        <button id="close-chat" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+                        <!-- Messages will appear here -->
+                    </div>
+                    <div class="p-4 border-t">
+                        <div class="flex space-x-2">
+                            <input type="text" id="chat-input" placeholder="Digite sua mensagem..." class="flex-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <button id="send-message" class="gradient-bg text-white px-4 py-2 rounded-md hover:opacity-90">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Button -->
+            <button id="open-chat" class="fixed bottom-6 right-6 gradient-bg text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:opacity-90 z-30">
+                <i class="fas fa-comment-dots text-xl"></i>
+                <span id="unread-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+            </button>
+
+            <!-- Add Activity Modal -->
+            <div id="activity-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-40 hidden">
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="text-lg font-medium">Adicionar Atividade</h3>
+                        <button id="close-activity-modal" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="p-4">
+                        <form id="activity-form" class="space-y-4">
+                            <div>
+                                <label for="activity-type" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Atividade</label>
+                                <select id="activity-type" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                                    <option value="Corrida">Corrida</option>
+                                    <option value="Caminhada">Caminhada</option>
+                                    <option value="Musculação">Musculação</option>
+                                    <option value="Natação">Natação</option>
+                                    <option value="Ciclismo">Ciclismo</option>
+                                    <option value="Yoga">Yoga</option>
+                                    <option value="Crossfit">Crossfit</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="activity-duration" class="block text-sm font-medium text-gray-700 mb-1">Duração (minutos)</label>
+                                <input type="number" id="activity-duration" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            </div>
+                            <div>
+                                <label for="activity-weight" class="block text-sm font-medium text-gray-700 mb-1">Seu Peso (kg)</label>
+                                <input type="number" id="activity-weight" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500" value="70">
+                            </div>
+                            <div>
+                                <label for="activity-date" class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                                <input type="date" id="activity-date" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            </div>
+                            <button type="submit" class="w-full gradient-bg text-white py-2 px-4 rounded-md hover:opacity-90 transition duration-200">
+                                Salvar Atividade
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // User credentials
+        const users = {
+            'DIOGO': { password: '2910', avatar: 'https://randomuser.me/api/portraits/men/1.jpg', weight: 75 },
+            'TETEU': { password: '2026', avatar: 'https://randomuser.me/api/portraits/men/2.jpg', weight: 80 },
+            'LETICIA': { password: '2027', avatar: 'https://randomuser.me/api/portraits/women/1.jpg', weight: 60 },
+            'JULIO': { password: '1008', avatar: 'https://randomuser.me/api/portraits/men/3.jpg', weight: 85 },
+            'MANU': { password: '1906', avatar: 'https://randomuser.me/api/portraits/women/2.jpg', weight: 55 }
+        };
+
+        // MET values for different exercises (calories burned per kg per hour)
+        const metValues = {
+            'Corrida': 9.8,
+            'Caminhada': 4.3,
+            'Musculação': 6.0,
+            'Natação': 7.0,
+            'Ciclismo': 7.5,
+            'Yoga': 3.0,
+            'Crossfit': 8.0
+        };
+
+        // Sample activities data
+        let activities = [
+            { user: 'DIOGO', type: 'Corrida', duration: 30, calories: 368, date: '2023-06-01' },
+            { user: 'TETEU', type: 'Musculação', duration: 45, calories: 360, date: '2023-06-02' },
+            { user: 'LETICIA', type: 'Yoga', duration: 60, calories: 180, date: '2023-06-02' },
+            { user: 'JULIO', type: 'Ciclismo', duration: 40, calories: 425, date: '2023-06-03' },
+            { user: 'MANU', type: 'Natação', duration: 30, calories: 193, date: '2023-06-03' },
+            { user: 'DIOGO', type: 'Crossfit', duration: 50, calories: 653, date: '2023-06-04' },
+            { user: 'TETEU', type: 'Caminhada', duration: 60, calories: 344, date: '2023-06-05' }
+        ];
+
+        // Sample chat messages
+        let chatMessages = [
+            { user: 'DIOGO', message: 'Bom dia pessoal! Quem vai treinar hoje?', time: '08:30', read: true },
+            { user: 'LETICIA', message: 'Eu vou fazer yoga às 18h. Alguém quer ir junto?', time: '09:15', read: true },
+            { user: 'JULIO', message: 'Vou pedalar no parque depois do trabalho.', time: '10:00', read: true },
+            { user: 'MANU', message: 'Acabei de nadar 1km! Estou me sentindo ótima!', time: '11:30', read: false },
+            { user: 'TETEU', message: 'Alguém tem dicas para melhorar no supino?', time: '12:45', read: false }
+        ];
+
+        // Nutrition AI responses
+        const nutriResponses = [
+            "Para ganhar massa muscular, consuma 1,6-2,2g de proteína por kg de peso corporal diariamente.",
+            "Uma boa dieta pós-treino inclui proteínas e carboidratos na proporção 3:1.",
+            "Hidrate-se bem! Beba pelo menos 35ml de água por kg de peso corporal por dia.",
+            "Consuma gorduras saudáveis como abacate, castanhas e azeite de oliva.",
+            "Para definir o corpo, mantenha um déficit calórico de 300-500kcal por dia.",
+            "Suplementos como whey protein e creatina podem ajudar no seu objetivo.",
+            "Não pule o café da manhã! É a refeição mais importante do dia.",
+            "Consuma fibras para melhorar a digestão e saciedade."
+        ];
+
+        // Funk playlist (using copyright-free music)
+        const playlist = [
+            { title: 'Funk do Penca', artist: 'DJ Squad', cover: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg', duration: '3:32', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+            { title: 'Batida do Verão', artist: 'MC Virtual', cover: 'https://i.ytimg.com/vi/btPJPFnesV4/maxresdefault.jpg', duration: '4:05', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+            { title: 'Pancadão Fitness', artist: 'Banda Malhação', cover: 'https://i.ytimg.com/vi/Sk8jUqB9szs/maxresdefault.jpg', duration: '3:42', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+            { title: 'Levanta e Malha', artist: 'DJ Batidão', cover: 'https://i.ytimg.com/vi/8DyziWtkfBw/maxresdefault.jpg', duration: '4:29', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
+            { title: 'Funk do Shape', artist: 'MC Musculação', cover: 'https://i.ytimg.com/vi/5G5n7a-FIcg/maxresdefault.jpg', duration: '4:07', src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' }
+        ];
+
+        // Current user
+        let currentUser = null;
+        let audioPlayer = new Audio();
+        let currentSongIndex = 0;
+        let isPlaying = false;
+        let unreadMessages = 0;
+        let onlineStatus = {
+            'DIOGO': true,
+            'TETEU': false,
+            'LETICIA': true,
+            'JULIO': false,
+            'MANU': true
+        };
+
+        // DOM Elements
+        const loginScreen = document.getElementById('login-screen');
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginError = document.getElementById('login-error');
+        const app = document.getElementById('app');
+        const userInfo = document.getElementById('user-info');
+        const userName = document.getElementById('user-name');
+        const userAvatar = document.getElementById('user-avatar');
+        const userStatus = document.getElementById('user-status');
+        const logoutBtn = document.getElementById('logout-btn');
+        const activityList = document.getElementById('activity-list');
+        const addActivityBtn = document.getElementById('add-activity-btn');
+        const activityModal = document.getElementById('activity-modal');
+        const closeActivityModal = document.getElementById('close-activity-modal');
+        const activityForm = document.getElementById('activity-form');
+        const chatModal = document.getElementById('chat-modal');
+        const openChat = document.getElementById('open-chat');
+        const closeChat = document.getElementById('close-chat');
+        const chatMessagesContainer = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendMessage = document.getElementById('send-message');
+        const unreadCount = document.getElementById('unread-count');
+        const membersList = document.getElementById('members-list');
+        const currentSongTitle = document.getElementById('current-song-title');
+        const currentSongArtist = document.getElementById('current-song-artist');
+        const currentSongCover = document.getElementById('current-song-cover');
+        const playPauseBtn = document.getElementById('play-pause');
+        const prevSongBtn = document.getElementById('prev-song');
+        const nextSongBtn = document.getElementById('next-song');
+        const progressBar = document.getElementById('progress-bar');
+        const currentTime = document.getElementById('current-time');
+        const totalTime = document.getElementById('total-time');
+        const playlistContainer = document.getElementById('playlist');
+        const nutriChatMessages = document.getElementById('nutri-chat-messages');
+        const nutriChatInput = document.getElementById('nutri-chat-input');
+        const sendNutriMessage = document.getElementById('send-nutri-message');
+        const exerciseType = document.getElementById('exercise-type');
+        const exerciseDuration = document.getElementById('exercise-duration');
+        const exerciseWeight = document.getElementById('exercise-weight');
+        const calculateCalories = document.getElementById('calculate-calories');
+        const caloriesResult = document.getElementById('calories-result');
+        const calculatedCalories = document.getElementById('calculated-calories');
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup login form
+            loginForm.addEventListener('submit', handleLogin);
+            
+            // Setup logout button
+            logoutBtn.addEventListener('click', handleLogout);
+            
+            // Setup activity modal
+            addActivityBtn.addEventListener('click', () => activityModal.classList.remove('hidden'));
+            closeActivityModal.addEventListener('click', () => activityModal.classList.add('hidden'));
+            activityForm.addEventListener('submit', handleAddActivity);
+            
+            // Setup chat
+            openChat.addEventListener('click', openChatModal);
+            closeChat.addEventListener('click', closeChatModal);
+            sendMessage.addEventListener('click', sendChatMessage);
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
+                }
+            });
+            
+            // Setup nutrition chat
+            sendNutriMessage.addEventListener('click', sendNutriChatMessage);
+            nutriChatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendNutriChatMessage();
+                }
+            });
+            
+            // Setup calorie calculator
+            calculateCalories.addEventListener('click', calculateExerciseCalories);
+            
+            // Set today's date as default in activity form
+            document.getElementById('activity-date').valueAsDate = new Date();
+            
+            // Set default weight in activity form
+            document.getElementById('activity-weight').value = '70';
+        });
+
+        // Handle login
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            
+            if (users[username] && users[username].password === password) {
+                currentUser = username;
+                loginScreen.classList.add('hidden');
+                app.classList.remove('hidden');
+                initializeApp();
+                
+                // Start playing music automatically
+                setTimeout(() => {
+                    togglePlayPause();
+                }, 1000);
+            } else {
+                loginError.classList.remove('hidden');
+                loginForm.classList.add('login-error');
+                setTimeout(() => {
+                    loginForm.classList.remove('login-error');
+                }, 500);
+            }
+        }
+
+        // Handle logout
+        function handleLogout() {
+            currentUser = null;
+            app.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            usernameInput.value = '';
+            passwordInput.value = '';
+            loginError.classList.add('hidden');
+            
+            // Pause music when logging out
+            if (isPlaying) {
+                togglePlayPause();
+            }
+        }
+
+        // Initialize app after login
+        function initializeApp() {
+            // Set user info
+            userName.textContent = currentUser;
+            userAvatar.src = users[currentUser].avatar;
+            userStatus.className = `online-indicator ${onlineStatus[currentUser] ? 'online' : 'offline'}`;
+            
+            // Set user weight in forms
+            document.getElementById('activity-weight').value = users[currentUser].weight;
+            document.getElementById('exercise-weight').value = users[currentUser].weight;
+            
+            // Render activities
+            renderActivities();
+            
+            // Render charts
+            renderCharts();
+            
+            // Render chat
+            renderChatMessages();
+            
+            // Render group members
+            renderGroupMembers();
+            
+            // Render playlist
+            renderPlaylist();
+            
+            // Set current song
+            setCurrentSong(0);
+            
+            // Simulate online status changes
+            simulateOnlineStatus();
+        }
+
+        // Render activities
+        function renderActivities() {
+            activityList.innerHTML = '';
+            
+            activities.forEach(activity => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                
+                const dateCell = document.createElement('td');
+                dateCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                dateCell.textContent = formatDate(activity.date);
+                
+                const userCell = document.createElement('td');
+                userCell.className = 'px-6 py-4 whitespace-nowrap';
+                
+                const userDiv = document.createElement('div');
+                userDiv.className = 'flex items-center';
+                
+                const userImg = document.createElement('img');
+                userImg.className = 'w-8 h-8 rounded-full';
+                userImg.src = users[activity.user].avatar;
+                userImg.alt = activity.user;
+                
+                const userNameDiv = document.createElement('div');
+                userNameDiv.className = 'ml-4';
+                
+                const userNameSpan = document.createElement('div');
+                userNameSpan.className = 'text-sm font-medium text-gray-900';
+                userNameSpan.textContent = activity.user;
+                
+                userNameDiv.appendChild(userNameSpan);
+                userDiv.appendChild(userImg);
+                userDiv.appendChild(userNameDiv);
+                userCell.appendChild(userDiv);
+                
+                const typeCell = document.createElement('td');
+                typeCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                typeCell.textContent = activity.type;
+                
+                const durationCell = document.createElement('td');
+                durationCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500';
+                durationCell.textContent = `${activity.duration} min`;
+                
+                const caloriesCell = document.createElement('td');
+                caloriesCell.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium';
+                caloriesCell.textContent = activity.calories;
+                
+                row.appendChild(dateCell);
+                row.appendChild(userCell);
+                row.appendChild(typeCell);
+                row.appendChild(durationCell);
+                row.appendChild(caloriesCell);
+                
+                activityList.appendChild(row);
+            });
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('pt-BR', options);
+        }
+
+        // Render charts
+        function renderCharts() {
+            // Group activities by user
+            const userActivities = {};
+            const userCalories = {};
+            
+            activities.forEach(activity => {
+                if (!userActivities[activity.user]) {
+                    userActivities[activity.user] = 0;
+                    userCalories[activity.user] = 0;
+                }
+                userActivities[activity.user]++;
+                userCalories[activity.user] += activity.calories;
+            });
+            
+            // Activities by user chart
+            const activitiesCtx = document.getElementById('activities-chart').getContext('2d');
+            new Chart(activitiesCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(userActivities),
+                    datasets: [{
+                        label: 'Atividades',
+                        data: Object.values(userActivities),
+                        backgroundColor: [
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(139, 92, 246, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(139, 92, 246, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Calories by user chart
+            const caloriesCtx = document.getElementById('calories-chart').getContext('2d');
+            new Chart(caloriesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(userCalories),
+                    datasets: [{
+                        label: 'Calorias',
+                        data: Object.values(userCalories),
+                        backgroundColor: [
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(239, 68, 68, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(139, 92, 246, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(139, 92, 246, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Calculate calories based on exercise type, duration and weight
+        function calculateCaloriesBurned(exercise, duration, weight) {
+            const met = metValues[exercise] || 5.0; // Default MET if exercise not found
+            return Math.round((met * weight * duration) / 60);
+        }
+
+        // Handle add activity
+        function handleAddActivity(e) {
+            e.preventDefault();
+            
+            const type = document.getElementById('activity-type').value;
+            const duration = parseInt(document.getElementById('activity-duration').value);
+            const weight = parseInt(document.getElementById('activity-weight').value);
+            const date = document.getElementById('activity-date').value;
+            
+            if (type && duration && weight && date) {
+                const calories = calculateCaloriesBurned(type, duration, weight);
+                
+                activities.unshift({
+                    user: currentUser,
+                    type,
+                    duration,
+                    calories,
+                    date
+                });
+                
+                activityModal.classList.add('hidden');
+                renderActivities();
+                renderCharts();
+                activityForm.reset();
+                document.getElementById('activity-date').valueAsDate = new Date();
+                document.getElementById('activity-weight').value = users[currentUser].weight;
+                
+                // Add chat message about new activity
+                const now = new Date();
+                const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                
+                chatMessages.unshift({
+                    user: currentUser,
+                    message: `Acabei de adicionar uma nova atividade: ${type} por ${duration} minutos (${calories} kcal)!`,
+                    time: timeString,
+                    read: false
+                });
+                
+                // Update unread count for others
+                Object.keys(users).forEach(user => {
+                    if (user !== currentUser && onlineStatus[user]) {
+                        unreadMessages++;
+                    }
+                });
+                
+                updateUnreadCount();
+                renderChatMessages();
+            }
+        }
+
+        // Calculate exercise calories
+        function calculateExerciseCalories() {
+            const exercise = exerciseType.value;
+            const duration = parseInt(exerciseDuration.value);
+            const weight = parseInt(exerciseWeight.value);
+            
+            if (exercise && duration && weight) {
+                const calories = calculateCaloriesBurned(exercise, duration, weight);
+                calculatedCalories.textContent = calories;
+                caloriesResult.classList.remove('hidden');
+            }
+        }
+
+        // Render chat messages
+        function renderChatMessages() {
+            chatMessagesContainer.innerHTML = '';
+            
+            chatMessages.forEach((msg, index) => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex ${msg.user === currentUser ? 'justify-end' : 'justify-start'}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = `chat-message rounded-lg p-3 ${msg.user === currentUser ? 'bg-orange-100 text-orange-900' : 'bg-gray-100 text-gray-800'}`;
+                
+                const userDiv = document.createElement('div');
+                userDiv.className = 'flex items-center mb-1';
+                
+                const userImg = document.createElement('img');
+                userImg.className = 'w-6 h-6 rounded-full mr-2';
+                userImg.src = users[msg.user].avatar;
+                userImg.alt = msg.user;
+                
+                const userNameSpan = document.createElement('span');
+                userNameSpan.className = 'font-medium text-sm';
+                userNameSpan.textContent = msg.user;
+                
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'text-xs ml-2 text-gray-500';
+                timeSpan.textContent = msg.time;
+                
+                userDiv.appendChild(userImg);
+                userDiv.appendChild(userNameSpan);
+                userDiv.appendChild(timeSpan);
+                
+                const messageText = document.createElement('p');
+                messageText.className = 'text-sm';
+                messageText.textContent = msg.message;
+                
+                contentDiv.appendChild(userDiv);
+                contentDiv.appendChild(messageText);
+                messageDiv.appendChild(contentDiv);
+                
+                chatMessagesContainer.appendChild(messageDiv);
+            });
+            
+            // Scroll to bottom
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+        }
+
+        // Send nutrition chat message
+        function sendNutriChatMessage() {
+            const messageText = nutriChatInput.value.trim();
+            
+            if (messageText) {
+                // Add user message
+                const userMessage = document.createElement('div');
+                userMessage.className = 'flex justify-end mb-2';
+                userMessage.innerHTML = `
+                    <div class="bg-orange-100 text-orange-900 rounded-lg p-3 max-w-xs">
+                        <p class="text-sm">${messageText}</p>
+                    </div>
+                `;
+                nutriChatMessages.appendChild(userMessage);
+                
+                // Add AI response after a short delay
+                setTimeout(() => {
+                    const randomResponse = nutriResponses[Math.floor(Math.random() * nutriResponses.length)];
+                    const aiMessage = document.createElement('div');
+                    aiMessage.className = 'flex mb-2';
+                    aiMessage.innerHTML = `
+                        <div class="bg-gray-100 text-gray-800 rounded-lg p-3 max-w-xs">
+                            <p class="text-sm">${randomResponse}</p>
+                        </div>
+                    `;
+                    nutriChatMessages.appendChild(aiMessage);
+                    nutriChatMessages.scrollTop = nutriChatMessages.scrollHeight;
+                }, 1000);
+                
+                nutriChatInput.value = '';
+                nutriChatMessages.scrollTop = nutriChatMessages.scrollHeight;
+            }
+        }
+
+        // Open chat modal
+        function openChatModal() {
+            chatModal.classList.remove('hidden');
+            
+            // Mark messages as read
+            chatMessages.forEach(msg => {
+                if (msg.user !== currentUser) {
+                    msg.read = true;
+                }
+            });
+            
+            unreadMessages = 0;
+            updateUnreadCount();
+            renderChatMessages();
+        }
+
+        // Close chat modal
+        function closeChatModal() {
+            chatModal.classList.add('hidden');
+        }
+
+        // Send chat message
+        function sendChatMessage() {
+            const messageText = chatInput.value.trim();
+            
+            if (messageText) {
+                const now = new Date();
+                const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                
+                chatMessages.unshift({
+                    user: currentUser,
+                    message: messageText,
+                    time: timeString,
+                    read: false
+                });
+                
+                // Update unread count for others
+                Object.keys(users).forEach(user => {
+                    if (user !== currentUser && onlineStatus[user]) {
+                        unreadMessages++;
+                    }
+                });
+                
+                updateUnreadCount();
+                renderChatMessages();
+                chatInput.value = '';
+                
+                // Auto-reply from other members (simulated)
+                setTimeout(() => {
+                    if (Math.random() > 0.5) {
+                        const randomUser = getRandomOtherUser();
+                        const replies = [
+                            "Legal!",
+                            "Boa!",
+                            "Vamos treinar juntos amanhã?",
+                            "Ótimo trabalho!",
+                            "Estou animado para o próximo treino!"
+                        ];
+                        
+                        const randomReply = replies[Math.floor(Math.random() * replies.length)];
+                        const now = new Date();
+                        const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                        
+                        chatMessages.unshift({
+                            user: randomUser,
+                            message: randomReply,
+                            time: timeString,
+                            read: randomUser === currentUser
+                        });
+                        
+                        if (randomUser !== currentUser && onlineStatus[randomUser]) {
+                            unreadMessages++;
+                            updateUnreadCount();
+                        }
+                        
+                        renderChatMessages();
+                    }
+                }, 2000);
+            }
+        }
+
+        // Get random other user
+        function getRandomOtherUser() {
+            const otherUsers = Object.keys(users).filter(user => user !== currentUser);
+            return otherUsers[Math.floor(Math.random() * otherUsers.length)];
+        }
+
+        // Update unread count
+        function updateUnreadCount() {
+            if (unreadMessages > 0) {
+                unreadCount.textContent = unreadMessages;
+                unreadCount.classList.remove('hidden');
+            } else {
+                unreadCount.classList.add('hidden');
+            }
+        }
+
+        // Render group members
+        function renderGroupMembers() {
+            membersList.innerHTML = '';
+            
+            Object.keys(users).forEach(user => {
+                const memberItem = document.createElement('li');
+                memberItem.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg';
+                
+                const memberInfo = document.createElement('div');
+                memberInfo.className = 'flex items-center';
+                
+                const memberImg = document.createElement('img');
+                memberImg.className = 'w-10 h-10 rounded-full mr-3';
+                memberImg.src = users[user].avatar;
+                memberImg.alt = user;
+                
+                const memberName = document.createElement('div');
+                memberName.className = 'font-medium';
+                memberName.textContent = user;
+                
+                memberInfo.appendChild(memberImg);
+                memberInfo.appendChild(memberName);
+                
+                const memberStatus = document.createElement('div');
+                memberStatus.className = 'flex items-center';
+                
+                const statusIndicator = document.createElement('div');
+                statusIndicator.className = `online-indicator ${onlineStatus[user] ? 'online' : 'offline'}`;
+                
+                const statusText = document.createElement('span');
+                statusText.className = 'text-sm text-gray-500 ml-2';
+                statusText.textContent = onlineStatus[user] ? 'Online' : 'Offline';
+                
+                memberStatus.appendChild(statusIndicator);
+                memberStatus.appendChild(statusText);
+                
+                memberItem.appendChild(memberInfo);
+                memberItem.appendChild(memberStatus);
+                
+                membersList.appendChild(memberItem);
+            });
+        }
+
+        // Simulate online status changes
+        function simulateOnlineStatus() {
+            setInterval(() => {
+                Object.keys(users).forEach(user => {
+                    // Randomly change status (more likely to be online during daytime)
+                    const hour = new Date().getHours();
+                    const onlineProbability = hour >= 8 && hour <= 22 ? 0.7 : 0.3;
+                    
+                    if (Math.random() < 0.1) { // 10% chance to change status
+                        onlineStatus[user] = Math.random() < onlineProbability;
+                        
+                        // Update UI if this user is the current user
+                        if (user === currentUser) {
+                            userStatus.className = `online-indicator ${onlineStatus[user] ? 'online' : 'offline'}`;
+                        }
+                        
+                        // Re-render members list
+                        renderGroupMembers();
+                    }
+                });
+            }, 10000); // Update every 10 seconds
+        }
+
+        // Setup music player
+        function setupMusicPlayer() {
+            // Play/Pause button
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            
+            // Previous song
+            prevSongBtn.addEventListener('click', () => {
+                setCurrentSong((currentSongIndex - 1 + playlist.length) % playlist.length);
+                if (isPlaying) {
+                    audioPlayer.play();
+                }
+            });
+            
+            // Next song
+            nextSongBtn.addEventListener('click', () => {
+                setCurrentSong((currentSongIndex + 1) % playlist.length);
+                if (isPlaying) {
+                    audioPlayer.play();
+                }
+            });
+            
+            // Progress bar
+            progressBar.addEventListener('input', () => {
+                const seekTime = (progressBar.value / 100) * audioPlayer.duration;
+                audioPlayer.currentTime = seekTime;
+            });
+            
+            // Update progress bar as song plays
+            audioPlayer.addEventListener('timeupdate', () => {
+                if (audioPlayer.duration) {
+                    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                    progressBar.value = progress;
+                    currentTime.textContent = formatTime(audioPlayer.currentTime);
+                }
+            });
+            
+            // Song ended
+            audioPlayer.addEventListener('ended', () => {
+                setCurrentSong((currentSongIndex + 1) % playlist.length);
+                if (isPlaying) {
+                    audioPlayer.play();
+                }
+            });
+        }
+
+        // Toggle play/pause
+        function togglePlayPause() {
+            if (isPlaying) {
+                audioPlayer.pause();
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            } else {
+                audioPlayer.play();
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            }
+            isPlaying = !isPlaying;
+        }
+
+        // Set current song
+        function setCurrentSong(index) {
+            currentSongIndex = index;
+            const song = playlist[index];
+            
+            currentSongTitle.textContent = song.title;
+            currentSongArtist.textContent = song.artist;
+            currentSongCover.src = song.cover;
+            totalTime.textContent = song.duration;
+            
+            audioPlayer.src = song.src;
+            audioPlayer.load();
+            
+            if (isPlaying) {
+                audioPlayer.play();
+                playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            }
+        }
+
+        // Format time (seconds to MM:SS)
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Render playlist
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            
+            playlist.forEach((song, index) => {
+                if (index === 0) return; // Skip first song (it's the current one)
+                
+                const songItem = document.createElement('li');
+                songItem.className = 'flex items-center p-2 hover:bg-orange-100 rounded-lg cursor-pointer';
+                songItem.addEventListener('click', () => {
+                    setCurrentSong(index);
+                    if (isPlaying) {
+                        audioPlayer.play();
+                    }
+                });
+                
+                const songImg = document.createElement('img');
+                songImg.className = 'w-10 h-10 rounded-md mr-3';
+                songImg.src = song.cover;
+                songImg.alt = song.title;
+                
+                const songInfo = document.createElement('div');
+                songInfo.className = 'flex-1';
+                
+                const songTitle = document.createElement('div');
+                songTitle.className = 'font-medium text-sm';
+                songTitle.textContent = song.title;
+                
+                const songArtist = document.createElement('div');
+                songArtist.className = 'text-xs text-gray-500';
+                songArtist.textContent = song.artist;
+                
+                songInfo.appendChild(songTitle);
+                songInfo.appendChild(songArtist);
+                
+                const songDuration = document.createElement('div');
+                songDuration.className = 'text-xs text-gray-500';
+                songDuration.textContent = song.duration;
+                
+                songItem.appendChild(songImg);
+                songItem.appendChild(songInfo);
+                songItem.appendChild(songDuration);
+                
+                playlistContainer.appendChild(songItem);
+            });
+        }
+    </script>
+</body>
+</html>
